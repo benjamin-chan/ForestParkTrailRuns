@@ -5,30 +5,47 @@ Map trail running routes through [Forest Park](http://www.portlandoregon.gov/par
 Last updated `r paste(Sys.time())` using `r R.version$version.string`.
 
 
-Find the geographic mean of [Wildwood Trail](http://en.wikipedia.org/wiki/Forest_Park_(Portland,_Oregon)#Wildwood_Trail). Use [Yassine Diboun's](http://www.yassinediboun.com/) Wildwood Trail end-to-end-to-end fastest known time [GPS data](http://yassinediboun.com/yassinediboun/blog/item/wildwood-end-to-end-to-end-speed-record-605-miles?category_id=379)
-```{r}
-require(plotKML)
-gpxWW <- readGPX("yassine WW double FKT.gpx")
-dfWW <- gpxWW$tracks[[1]][[1]]
-coordWW <- dfWW[, c("lon", "lat")]
+Read coordinates for Forest Park trailheads.
+```{r, results='asis'}
+dfTrailHeads <- data.frame(trail, th, lat, lon)
+require(RCurl)
+url <- getURL("https://docs.google.com/spreadsheet/pub?key=0ApyhYsT8Gi-EdFBUYk4wb0UyYlUweHg1SHlfX3VHV1E&single=true&gid=1&output=csv", cainfo = system.file("CurlSSL", "cacert.pem", package = "RCurl"))
+dfTrailHeads <- read.csv(textConnection(url), header=TRUE)
+require(xtable)
+print(xtable(dfTrailHeads), type="html")
+```
+
+Find the geographic mean of the trailheads. Use the geographic mean as a center point for grabbing the map.
+```{rmapForestParkBare}
 require(geosphere)
-geomeanWW <- geomean(coordWW)
-geomeanWW
+geomeanFP <- geomean(dfTrailHeads[, c("lon", "lat")])
+geomeanFP
 require(ggmap)
-mapWW <- get_map(location=geomeanWW, maptype="terrain", source="stamen", zoom=12)
-ggmap(mapWW)
+mapFP <- get_map(location=geomeanFP, maptype="terrain", source="stamen", zoom=12)
+ggmap(mapFP)
+```
+
+Plot the trailheads.
+```{r mapForestParkTrailHeads, dpi=240, fig.height=7, fig.width=7}
+require(RColorBrewer)
+color <- brewer.pal(9, "PiYG")[1]
+g <- ggmap(mapFP, base_layer=ggplot(dfTrailHeads, aes(x=lon, y=lat)))
+size <- 2
+g <- g + geom_point(color="black", size=size, alpha=1)
+g <- g + geom_point(color="white", size=size * 0.5, alpha=1)
+g
 ```
 
 Use my running history as a starting point. *Will eventually want to get other runners' data.*
 
 Get files names of GPX data files.
-```{r}
+```{r, eval=FALSE}
 path <- file.path("..", "RunningRoutes", "activities")
 files <- dir(path=path, pattern = "\\.gpx")
 ```
 Set the date range in days. Use only the files within range of the latest file. The dates of the files are determined from the file names.
-```{r}
-rangeDate <- 365.25 * 3
+```{r, eval=FALSE}
+rangeDate <- 365.25 * 1
 dates <- as.Date(substr(files, 1, 8), format="%Y%m%d")
 isRangeDate <- max(dates) - dates < rangeDate
 files <- files[isRangeDate]
@@ -37,11 +54,11 @@ dateTo   <- max(dates[isRangeDate])
 message(sprintf("Using routes run from %s to %s", dateFrom, dateTo))
 ```
 Consolidate routes in one data frame.
-```{r}
+```{r, eval=FALSE}
 index <- c()
 date <- c()
-latitude <- c()
-longitude <- c()
+lat <- c()
+lon <- c()
 require(plotKML)
 for (i in 1:length(files)) {
   f <- file.path(path, files[i])
@@ -49,34 +66,44 @@ for (i in 1:length(files)) {
   location <- route$tracks[[1]][[1]]
   index <- c(index, rep(i, dim(location)[1]))
   date <- c(date, rep(as.Date(substr(files[i], 1, 8), format="%Y%m%d"), dim(location)[1]))
-	latitude <- c(latitude, location$lat)
-	longitude <- c(longitude, location$lon)
+	lat <- c(lat, location$lat)
+	lon <- c(lon, location$lon)
 }
-routes <- data.frame(cbind(index, date, latitude, longitude))
+routes <- data.frame(cbind(index, date, lat, lon))
 ```
+
+
 Calculate distance from the central point. I'll need to use the `distHaversine` function from the [geosphere](http://www.inside-r.org/packages/cran/geosphere) package to calculate the distance from home to route coordinates. The Haversine algorithm isn't the most accurate, but it is good enough for this purpose.
-```{r}
+```{r, eval=FALSE}
 require(geosphere)
-dist <- distHaversine(geomeanWW, routes[, c("longitude", "latitude")]) / 1000
+dist <- distHaversine(dfTrailHeads[1, c("lon", "lat")], routes[, c("lon", "lat")])
 routes <- data.frame(routes, dist)
 ```
-Set the distance range in kilometers. Subset routes to those having at least one coordinate point within range from the central point.
-```{r}
-rangeDist <- 5
+Set the distance range in meters. Subset routes to those having at least one coordinate point within range from the central point.
+```{r, eval=FALSE}
+rangeDist <- 100
 aggRoutes <- aggregate(dist ~ index, routes, min)
 includedRoutes <- aggRoutes$index[aggRoutes$dist < rangeDist]
 routesInRange <- subset(routes, index %in% includedRoutes)
-message(sprintf("Plotting %.0d routes within %.0d km of (%.3f, %.3f)", length(includedRoutes), rangeDist, geomeanWW[1], geomeanWW[2]))
+message(sprintf("Plotting %.0d routes within %.0d m of (%.3f, %.3f)", length(includedRoutes), rangeDist, geomeanWW[1], geomeanWW[2]))
 ```
 Set titles for map.
-```{r}
-fmtDate <- "%d %b %Y"
+```{r, eval=FALSE}
+fmtDate <- "%d-%b-%Y"
 title <- sprintf("Forest Park trail runs\n%s to %s", format(dateFrom, fmtDate), format(dateTo, fmtDate))
 ```
+Set map attributes. Pick an alpha that will distinguish frequently used trails. Pick a color that will contrast nicely with the green of the terrain map.
+```{r, eval=FALSE}
+require(RColorBrewer)
+require(ggplot2)
+alpha <- 1/9
+color <- brewer.pal(9, "PiYG")[1]
+theme <- theme(axis.text=element_blank(), axis.title=element_blank(), axis.ticks=element_blank())
+```
 Plot the routes.
-```{r mapForestParkTrailRuns, dpi=240, fig.height=7, fig.width=7}
-g <- ggmap(mapWW, base_layer=ggplot(routesInRange, aes(x=longitude, y=latitude, group=index)))
-g <- g + geom_path(alpha=1/4, color="#7a0177")
-g <- g + labs(title=title)
+```{r mapForestParkTrailRuns, dpi=240, fig.height=7, fig.width=7, eval=FALSE}
+g <- ggmap(mapWW, base_layer=ggplot(routesInRange, aes(x=lon, y=lat, group=index)))
+g <- g + geom_path(alpha=alpha, color=color)
+g <- g + labs(title=title) + theme
 g
 ```
