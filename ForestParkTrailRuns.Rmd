@@ -5,61 +5,59 @@ Map trail running routes through [Forest Park](http://www.portlandoregon.gov/par
 Last updated `r paste(Sys.time())` using `r R.version$version.string`.
 
 
-Read coordinates for Forest Park trailheads.
-```{r, results='asis'}
-dfTrailHeads <- data.frame(trail, th, lat, lon)
-require(RCurl)
-url <- getURL("https://docs.google.com/spreadsheet/pub?key=0ApyhYsT8Gi-EdFBUYk4wb0UyYlUweHg1SHlfX3VHV1E&single=true&gid=1&output=csv", cainfo = system.file("CurlSSL", "cacert.pem", package = "RCurl"))
-dfTrailHeads <- read.csv(textConnection(url), header=TRUE)
-require(xtable)
-print(xtable(dfTrailHeads), type="html")
+Load packages.
+```{r}
+packages <- c("RCurl", "plotKML", "geosphere", "ggmap", "ggplot2", "RColorBrewer", "xtable", "data.table")
+sapply(packages, require, character.only=TRUE)
 ```
 
-Find the geographic mean of the trailheads. Use the geographic mean as a center point for grabbing the map.
+
+Read coordinates for Forest Park waypoints.
+```{r, results='asis'}
+url <- getURL("https://docs.google.com/spreadsheet/pub?key=0ApyhYsT8Gi-EdFBUYk4wb0UyYlUweHg1SHlfX3VHV1E&single=true&gid=1&output=csv", cainfo = system.file("CurlSSL", "cacert.pem", package = "RCurl"))
+dfWaypoints <- read.csv(textConnection(url), header=TRUE)
+print(xtable(dfWaypoints, digits=7), type="html")
+```
+
+Find the geographic mean of the waypoints. Use the geographic mean as a center point for grabbing the map.
 ```{rmapForestParkBare}
-require(geosphere)
-geomeanFP <- geomean(dfTrailHeads[, c("lon", "lat")])
+geomeanFP <- geomean(dfWaypoints[!is.na(dfWaypoints$lon) & !is.na(dfWaypoints$lat), c("lon", "lat")])
 geomeanFP
-require(ggmap)
 mapFP <- get_map(location=geomeanFP, maptype="terrain", source="stamen", zoom=12)
 ggmap(mapFP)
 ```
 
-Plot the trailheads.
-```{r mapForestParkTrailHeads, dpi=240, fig.height=7, fig.width=7}
-require(RColorBrewer)
+Plot the waypoints to use to identify if a run occurred inside Forest Park.
+```{r mapForestParkWaypoints}
 color <- brewer.pal(9, "PiYG")[1]
-g <- ggmap(mapFP, base_layer=ggplot(dfTrailHeads, aes(x=lon, y=lat)))
-size <- 2
-g <- g + geom_point(color="black", size=size, alpha=1)
-g <- g + geom_point(color="white", size=size * 0.5, alpha=1)
+g <- ggmap(mapFP, base_layer=ggplot(dfWaypoints, aes(x=lon, y=lat)))
+g <- g + geom_point(color=color, size=2)
 g
 ```
 
 Use my running history as a starting point. *Will eventually want to get other runners' data.*
 
 Get files names of GPX data files.
-```{r, eval=FALSE}
+```{r}
 path <- file.path("..", "RunningRoutes", "activities")
 files <- dir(path=path, pattern = "\\.gpx")
 ```
 Set the date range in days. Use only the files within range of the latest file. The dates of the files are determined from the file names.
-```{r, eval=FALSE}
-rangeDate <- 365.25 * 1
+```{r}
+rangeDate <- 365.25 * 3
 dates <- as.Date(substr(files, 1, 8), format="%Y%m%d")
 isRangeDate <- max(dates) - dates < rangeDate
 files <- files[isRangeDate]
 dateFrom <- min(dates[isRangeDate])
 dateTo   <- max(dates[isRangeDate])
-message(sprintf("Using routes run from %s to %s", dateFrom, dateTo))
+message(sprintf("Reading %.0d routes run from %s to %s", length(files), dateFrom, dateTo))
 ```
 Consolidate routes in one data frame.
-```{r, eval=FALSE}
+```{r}
 index <- c()
 date <- c()
 lat <- c()
 lon <- c()
-require(plotKML)
 for (i in 1:length(files)) {
   f <- file.path(path, files[i])
   route <- readGPX(f)
@@ -72,38 +70,47 @@ for (i in 1:length(files)) {
 routes <- data.frame(cbind(index, date, lat, lon))
 ```
 
+Cross join the routes with the waypoints. Use the `CJ` function from the data.table package. It has a performance edge over `merge`. Building the data frame from the cross join is the bottleneck, so print out a diagnostic.
+```{r}
+system.time(lookup <- CJ(rownumRoute=seq(1, nrow(routes)), rownumWaypoint=seq(1, nrow(dfWaypoints))))
+system.time(dfCJ <- data.frame(routes[lookup$rownumRoute, ], dfWaypoints[lookup$rownumWaypoint, ]))
+```
 
-Calculate distance from the central point. I'll need to use the `distHaversine` function from the [geosphere](http://www.inside-r.org/packages/cran/geosphere) package to calculate the distance from home to route coordinates. The Haversine algorithm isn't the most accurate, but it is good enough for this purpose.
-```{r, eval=FALSE}
-require(geosphere)
-dist <- distHaversine(dfTrailHeads[1, c("lon", "lat")], routes[, c("lon", "lat")])
-routes <- data.frame(routes, dist)
+Calculate distances from waypoints. I'll need to use the `distHaversine` function from the [geosphere](http://www.inside-r.org/packages/cran/geosphere) package. The Haversine algorithm isn't the most accurate, but it is good enough for this purpose.
+```{r}
+dist <- distHaversine(dfCJ[, c("lon", "lat")], dfCJ[, c("lon.1", "lat.1")])
+dfCJ <- data.frame(dfCJ, dist)
 ```
 Set the distance range in meters. Subset routes to those having at least one coordinate point within range from the central point.
-```{r, eval=FALSE}
-rangeDist <- 100
-aggRoutes <- aggregate(dist ~ index, routes, min)
+```{r}
+rangeDist <- 25
+aggRoutes <- aggregate(dist ~ index, dfCJ, min)
 includedRoutes <- aggRoutes$index[aggRoutes$dist < rangeDist]
 routesInRange <- subset(routes, index %in% includedRoutes)
-message(sprintf("Plotting %.0d routes within %.0d m of (%.3f, %.3f)", length(includedRoutes), rangeDist, geomeanWW[1], geomeanWW[2]))
+message(sprintf("Plotting %.0d routes within %.0d m of any waypoint", length(includedRoutes), rangeDist))
 ```
 Set titles for map.
-```{r, eval=FALSE}
+```{r}
 fmtDate <- "%d-%b-%Y"
-title <- sprintf("Forest Park trail runs\n%s to %s", format(dateFrom, fmtDate), format(dateTo, fmtDate))
+title <- sprintf("Forest Park trail runs\n%.0d routes from %s to %s", length(includedRoutes), format(dateFrom, fmtDate), format(dateTo, fmtDate))
 ```
 Set map attributes. Pick an alpha that will distinguish frequently used trails. Pick a color that will contrast nicely with the green of the terrain map.
-```{r, eval=FALSE}
-require(RColorBrewer)
-require(ggplot2)
+```{r}
 alpha <- 1/9
 color <- brewer.pal(9, "PiYG")[1]
+size <- 1/4
 theme <- theme(axis.text=element_blank(), axis.title=element_blank(), axis.ticks=element_blank())
 ```
-Plot the routes.
-```{r mapForestParkTrailRuns, dpi=240, fig.height=7, fig.width=7, eval=FALSE}
-g <- ggmap(mapWW, base_layer=ggplot(routesInRange, aes(x=lon, y=lat, group=index)))
-g <- g + geom_path(alpha=alpha, color=color)
+Plot low resolution and high resolution versions of the routes. Only show the low resolution version. The high resolution version is saved for later.
+```{r mapForestParkTrailRunsLowRes}
+g <- ggmap(mapFP, base_layer=ggplot(routesInRange, aes(x=lon, y=lat, group=index)))
+g <- g + geom_path(alpha=alpha, color=color, size=size)
+g <- g + labs(title=title) + theme
+g
+```
+```{r mapForestParkTrailRunsHiRes, dpi=600, fig.height=7, fig.width=7, fig.show='hide'}
+g <- ggmap(mapFP, base_layer=ggplot(routesInRange, aes(x=lon, y=lat, group=index)))
+g <- g + geom_path(alpha=alpha, color=color, size=size)
 g <- g + labs(title=title) + theme
 g
 ```
