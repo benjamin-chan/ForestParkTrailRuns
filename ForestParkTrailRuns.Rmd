@@ -7,16 +7,16 @@ Last updated `r paste(Sys.time())` using `r R.version$version.string`.
 
 Load packages.
 ```{r}
-packages <- c("RCurl", "plotKML", "geosphere", "ggmap", "ggplot2", "RColorBrewer", "xtable", "data.table")
-sapply(packages, require, character.only=TRUE)
+packages <- c("RCurl", "plotKML", "geosphere", "ggmap", "ggplot2", "RColorBrewer", "data.table")
+sapply(packages, require, character.only=TRUE, quietly=TRUE)
 ```
 
 
 Read coordinates for Forest Park waypoints.
-```{r, results='asis'}
+```{r}
 url <- getURL("https://docs.google.com/spreadsheet/pub?key=0ApyhYsT8Gi-EdFBUYk4wb0UyYlUweHg1SHlfX3VHV1E&single=true&gid=1&output=csv", cainfo = system.file("CurlSSL", "cacert.pem", package = "RCurl"))
 dfWaypoints <- read.csv(textConnection(url), header=TRUE)
-print(xtable(dfWaypoints, digits=7), type="html")
+dfWaypoints
 ```
 
 Find the geographic mean of the waypoints. Use the geographic mean as a center point for grabbing the map.
@@ -42,14 +42,13 @@ Get files names of GPX data files.
 path <- file.path("..", "RunningRoutes", "activities")
 files <- dir(path=path, pattern = "\\.gpx")
 ```
-Set the date range in days. Use only the files within range of the latest file. The dates of the files are determined from the file names.
+Set the date range. Use only the files within range. The dates of the files are determined from the file names.
 ```{r}
-rangeDate <- 365.25 * 3
+dateFrom <- as.Date("2013-01-01")
+dateTo <- as.Date("2013-12-31")
 dates <- as.Date(substr(files, 1, 8), format="%Y%m%d")
-isRangeDate <- max(dates) - dates < rangeDate
+isRangeDate <- dateFrom < dates & dates < dateTo
 files <- files[isRangeDate]
-dateFrom <- min(dates[isRangeDate])
-dateTo   <- max(dates[isRangeDate])
 message(sprintf("Reading %.0d routes run from %s to %s", length(files), dateFrom, dateTo))
 ```
 Consolidate routes in one data frame.
@@ -98,7 +97,7 @@ Set map attributes. Pick an alpha that will distinguish frequently used trails. 
 ```{r}
 alpha <- 1/9
 color <- brewer.pal(9, "PiYG")[1]
-size <- 1/4
+size <- 1/8
 theme <- theme(axis.text=element_blank(), axis.title=element_blank(), axis.ticks=element_blank())
 ```
 Plot low resolution and high resolution versions of the routes. Only show the low resolution version. The high resolution version is saved for later.
