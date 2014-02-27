@@ -108,7 +108,7 @@ rangeDist <- 25
 aggRoutes <- aggregate(dist ~ index, dfCJ, min)
 includedRoutes <- aggRoutes$index[aggRoutes$dist < rangeDist]
 routesInRange <- subset(routes, index %in% includedRoutes)
-message(sprintf("Plotting %.0d routes within %.0d m of any waypoint", length(includedRoutes), rangeDist))
+message(sprintf("Plotting %.0d routes within %.0d m of any waypoint (%.1f%% of the %.0d routes)", length(includedRoutes), rangeDist, length(includedRoutes) / length(files) * 100, length(files)))
 ```
 
 Set titles for map.
