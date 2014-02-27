@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx creator="StravaGPX" version="1.1" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+ <metadata>
+  <time>2012-07-05T23:29:54Z</time>
+ </metadata>
+ <trk>
+  <name>07/05/2012 Portland, OR</name>
+  <trkseg>
+   <trkpt lat="45.4963910" lon="-122.6888150">
+    <ele>180.8</ele>
+    <time>2012-07-05T23:29:54Z</time>
+   </trkpt>
+   <trkpt lat="45.4963910" lon="-122.6888150">
+    <ele>180.8</ele>
+    <time>2012-07-05T23:29:59Z</time>
+   </trkpt>
+   <trkpt lat="45.4965230" lon="-122.6890850">
+    <ele>182.9</ele>
+    <time>2012-07-05T23:30:03Z</time>
+   </trkpt>
+   <trkpt lat="45.4964980" lon="-122.6892020">
+    <ele>183.6</ele>
+    <time>2012-07-05T23:30:05Z</time>
+   </trkpt>
+   <trkpt lat="45.4964710" lon="-122.6893140">
+    <ele>183.4</ele>
+    <time>2012-07-05T23:30:07Z</time>
+   </trkpt>
+   <trkpt lat="45.4964440" lon="-122.6894930">
+    <ele>183.3</ele>
+    <time>2012-07-05T23:30:11Z</time>
+   </trkpt>
+   <trkpt lat="45.4964720" lon="-122.6898170">
+    <ele>182.2</ele>
+    <time>2012-07-05T23:30:19Z</time>
+   </trkpt>
+   <trkpt lat="45.4964770" lon="-122.6900730">
+    <ele>178.8</ele>
+    <time>2012-07-05T23:30:25Z</time>
+   </trkpt>
+   <trkpt lat="45.4964880" lon="-122.6903300">
+    <ele>178.4</ele>
+    <time>2012-07-05T23:30:32Z</time>
+   </trkpt>
+   <trkpt lat="45.4964830" lon="-122.6905040">
+    <ele>180.0</ele>
+    <time>2012-07-05T23:30:37Z</time>
+   </trkpt>
+   <trkpt lat="45.4964800" lon="-122.6906740">
+    <ele>180.2</ele>
+    <time>2012-07-05T23:30:42Z</time>
+   </trkpt>
+   <trkpt lat="45.4965030" lon="-122.6909260">
+    <ele>179.8</ele>
+    <time>2012-07-05T23:30:49Z</time>
+   </trkpt>
+   <trkpt lat="45.4965390" lon="-122.6909810">
+    <ele>179.9</ele>
+    <time>2012-07-05T23:30:51Z</time>
+   </trkpt>
+  </trkseg>
+ </trk>
+</gpx>
