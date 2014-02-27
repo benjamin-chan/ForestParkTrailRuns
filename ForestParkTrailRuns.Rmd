@@ -60,7 +60,7 @@ files <- files[isRun]
 Set the date range. Use only the files within range. The dates of the files are determined from the file names.
 
 ```{r}
-dateFrom <- as.Date("2013-01-01")
+dateFrom <- as.Date("2012-01-01")
 dateTo <- Sys.Date()
 dates <- as.Date(substr(files, 1, 8), format="%Y%m%d")
 isRangeDate <- dateFrom < dates & dates < dateTo
@@ -121,9 +121,9 @@ title <- sprintf("Forest Park trail runs\n%.0d routes from %s to %s", length(inc
 Set map attributes. Pick an alpha that will distinguish frequently used trails. Pick a color that will contrast nicely with the green of the terrain map.
 
 ```{r}
-alpha <- 1/9
+alpha <- 1/4
 color <- brewer.pal(9, "PiYG")[1]
-size <- 1/8
+size <- 1/4
 theme <- theme(axis.text=element_blank(), axis.title=element_blank(), axis.ticks=element_blank())
 ```
 

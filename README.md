@@ -2,10 +2,11 @@ Forest Park Trail Runs
 ======================
 Map trail running routes through [Forest Park](http://www.portlandoregon.gov/parks/finder/index.cfm?&propertyid=127&action=ViewPark).
 
-Last updated 2014-02-13 15:15:14 using R version 3.0.2 (2013-09-25).
+Last updated 2014-02-27 09:47:40 using R version 3.0.2 (2013-09-25).
 
 
 Load packages.
+
 
 ```r
 packages <- c("RCurl", "plotKML", "geosphere", "ggmap", "ggplot2", "RColorBrewer", 
@@ -28,6 +29,7 @@ sapply(packages, require, character.only = TRUE, quietly = TRUE)
 
 
 Read coordinates for Forest Park waypoints.
+
 
 ```r
 url <- getURL("https://docs.google.com/spreadsheet/pub?key=0ApyhYsT8Gi-EdFBUYk4wb0UyYlUweHg1SHlfX3VHV1E&single=true&gid=1&output=csv", 
@@ -109,6 +111,7 @@ dfWaypoints
 
 Find the geographic mean of the waypoints. Use the geographic mean as a center point for grabbing the map.
 
+
 ```r
 geomeanFP <- geomean(dfWaypoints[!is.na(dfWaypoints$lon) & !is.na(dfWaypoints$lat), 
     c("lon", "lat")])
@@ -139,6 +142,7 @@ ggmap(mapFP)
 
 Plot the waypoints to use to identify if a run occurred inside Forest Park.
 
+
 ```r
 color <- brewer.pal(9, "PiYG")[1]
 g <- ggmap(mapFP, base_layer = ggplot(dfWaypoints, aes(x = lon, y = lat)))
@@ -153,16 +157,39 @@ Use my running history as a starting point. *Will eventually want to get other r
 
 Get files names of GPX data files.
 
+
 ```r
-path <- file.path("..", "RunningRoutes", "activities")
+path <- file.path("Data", "user001")
 files <- dir(path = path, pattern = "\\.gpx")
 ```
 
-Set the date range. Use only the files within range. The dates of the files are determined from the file names.
+
+Determine which ones are runs versus rides. Only use the runs for now.
+
 
 ```r
-dateFrom <- as.Date("2013-01-01")
-dateTo <- as.Date("2013-12-31")
+isRun <- grepl("run", tolower(files))
+isRide <- grepl("ride", tolower(files))
+table(isRun, isRide)
+```
+
+```
+##       isRide
+## isRun  FALSE
+##   TRUE   504
+```
+
+```r
+files <- files[isRun]
+```
+
+
+Set the date range. Use only the files within range. The dates of the files are determined from the file names.
+
+
+```r
+dateFrom <- as.Date("2012-01-01")
+dateTo <- Sys.Date()
 dates <- as.Date(substr(files, 1, 8), format = "%Y%m%d")
 isRangeDate <- dateFrom < dates & dates < dateTo
 files <- files[isRangeDate]
@@ -171,10 +198,12 @@ message(sprintf("Reading %.0d routes run from %s to %s", length(files), dateFrom
 ```
 
 ```
-## Reading 212 routes run from 2013-01-01 to 2013-12-31
+## Reading 444 routes run from 2012-01-01 to 2014-02-27
 ```
 
+
 Consolidate routes in one data frame.
+
 
 ```r
 index <- c()
@@ -197,6 +226,7 @@ routes <- data.frame(cbind(index, date, lat, lon))
 
 Cross join the routes with the waypoints. Use the `CJ` function from the data.table package. It has a performance edge over `merge`. Building the data frame from the cross join is the bottleneck, so print out a diagnostic.
 
+
 ```r
 system.time(lookup <- CJ(rownumRoute = seq(1, nrow(routes)), rownumWaypoint = seq(1, 
     nrow(dfWaypoints))))
@@ -204,7 +234,7 @@ system.time(lookup <- CJ(rownumRoute = seq(1, nrow(routes)), rownumWaypoint = se
 
 ```
 ##    user  system elapsed 
-##    0.37    0.04    0.40
+##    0.44    0.03    0.46
 ```
 
 ```r
@@ -214,18 +244,21 @@ system.time(dfCJ <- data.frame(routes[lookup$rownumRoute, ], dfWaypoints[lookup$
 
 ```
 ##    user  system elapsed 
-##  186.17    1.66  188.52
+##  376.12    2.99  380.46
 ```
 
 
 Calculate distances from waypoints. I'll need to use the `distHaversine` function from the [geosphere](http://www.inside-r.org/packages/cran/geosphere) package. The Haversine algorithm isn't the most accurate, but it is good enough for this purpose.
+
 
 ```r
 dist <- distHaversine(dfCJ[, c("lon", "lat")], dfCJ[, c("lon.1", "lat.1")])
 dfCJ <- data.frame(dfCJ, dist)
 ```
 
+
 Set the distance range in meters. Subset routes to those having at least one coordinate point within range from the central point.
+
 
 ```r
 rangeDist <- 25
@@ -237,10 +270,12 @@ message(sprintf("Plotting %.0d routes within %.0d m of any waypoint", length(inc
 ```
 
 ```
-## Plotting 45 routes within 25 m of any waypoint
+## Plotting 80 routes within 25 m of any waypoint
 ```
 
+
 Set titles for map.
+
 
 ```r
 fmtDate <- "%d-%b-%Y"
@@ -248,16 +283,20 @@ title <- sprintf("Forest Park trail runs\n%.0d routes from %s to %s", length(inc
     format(dateFrom, fmtDate), format(dateTo, fmtDate))
 ```
 
+
 Set map attributes. Pick an alpha that will distinguish frequently used trails. Pick a color that will contrast nicely with the green of the terrain map.
 
+
 ```r
-alpha <- 1/9
+alpha <- 1/4
 color <- brewer.pal(9, "PiYG")[1]
-size <- 1/8
+size <- 1/4
 theme <- theme(axis.text = element_blank(), axis.title = element_blank(), axis.ticks = element_blank())
 ```
 
+
 Plot low resolution and high resolution versions of the routes. Only show the low resolution version. The high resolution version is saved for later.
+
 
 ```r
 g <- ggmap(mapFP, base_layer = ggplot(routesInRange, aes(x = lon, y = lat, group = index)))
@@ -267,6 +306,7 @@ g
 ```
 
 ![plot of chunk mapForestParkTrailRunsLowRes](figure/mapForestParkTrailRunsLowRes.png) 
+
 
 
 ```r
