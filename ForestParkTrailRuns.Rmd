@@ -8,35 +8,23 @@ Last updated `r paste(Sys.time())` using `r R.version$version.string`.
 Load packages.
 
 ```{r}
-packages <- c("RCurl", "plotKML", "geosphere", "ggmap", "ggplot2", "RColorBrewer", "data.table", "sp")
+packages <- c("RCurl", "plotKML", "geosphere", "ggmap", "ggplot2", "RColorBrewer", "data.table", "sp", "xtable")
 sapply(packages, require, character.only=TRUE, quietly=TRUE)
 ```
 
 
 Read coordinates for Forest Park waypoints.
 
-```{r, }
+```{r, results='asis'}
 url <- getURL("https://docs.google.com/spreadsheet/pub?key=0ApyhYsT8Gi-EdFBUYk4wb0UyYlUweHg1SHlfX3VHV1E&single=true&gid=1&output=csv", cainfo = system.file("CurlSSL", "cacert.pem", package = "RCurl"))
 dfWaypoints <- read.csv(textConnection(url), header=TRUE)
-dfWaypoints
+print(xtable(rbind(head(dfWaypoints), tail(dfWaypoints)), digits=7), type="html")
 ```
 
-Find the geographic mean of the waypoints. Use the geographic mean as a center point for grabbing the map.
+Let's use only the waypoints that define the edges of Forest Park.
 
-```{rmapForestParkBare}
-geomeanFP <- geomean(dfWaypoints[!is.na(dfWaypoints$lon) & !is.na(dfWaypoints$lat), c("lon", "lat")])
-geomeanFP
-mapFP <- get_map(location=geomeanFP, maptype="terrain", source="stamen", zoom=12)
-ggmap(mapFP)
-```
-
-Plot the waypoints to use to identify if a run occurred inside Forest Park. Boundary waypoints are shown in a different color.
-
-```{r mapForestParkWaypoints}
-g <- ggmap(mapFP, base_layer=ggplot(dfWaypoints, aes(x=lon, y=lat, color=isEdge)))
-g <- g + geom_point(size=2)
-g <- g + theme(legend.position="none")
-g
+```{r}
+dfEdges <- dfWaypoints[dfWaypoints$isEdge, ]
 ```
 
 Show the waypoints that are edges, or boundaries, of Forest Park.
@@ -55,7 +43,25 @@ dfEdges <- dfEdges[order(order), ]
 cbind(order=seq(1:max(order)), dfEdges)
 ```
 
-Define a polygon.
+Find the geographic mean of the waypoints. Use the geographic mean as a center point for grabbing the map.
+
+```{r mapForestParkBare}
+geomeanFP <- geomean(dfEdges[, c("lon", "lat")])
+geomeanFP
+mapFP <- get_map(location=geomeanFP, maptype="terrain", source="stamen", zoom=12)
+ggmap(mapFP)
+```
+
+Plot the waypoints to use to identify if a run occurred inside Forest Park. Boundary waypoints are shown in a different color.
+
+```{r mapForestParkWaypoints}
+g <- ggmap(mapFP, base_layer=ggplot(dfWaypoints, aes(x=lon, y=lat, color=isEdge)))
+g <- g + geom_point(size=2)
+g <- g + theme(legend.position="none")
+g
+```
+
+Define a polygon using the boundary waypoints.
 
 ```{r}
 polyFP <- makePoly(dfEdges[, c("lon", "lat")])
@@ -120,13 +126,6 @@ for (i in 1:length(files)) {
 routes <- data.frame(cbind(index, date, lat, lon))
 ```
 
-
-**START Experimental Section**
-
-Figure out a way to determine if a route includes a data point inside the polygon. Maybe it's faster than the current method?
-
-Try [this](http://www.nceas.ucsb.edu/scicomp/usecases/point-in-polygon).
-
 Use the `point.in.polygon` function in the `sp` package to determine if a route has a point inside the Forest Park polygon.
 
 ```{r}
@@ -134,37 +133,6 @@ isFP <- point.in.polygon(routes$lon, routes$lat, polyFP$lon, polyFP$lat)
 isFP <- as.logical(isFP)
 includedRoutes <- unique(routes[isFP, "index"])
 ```
-
-**Experiment works! Time to get rid of the other crap**
-
-**END Experimental Section**
-
-
-**START Crap to get rid of**
-
-Cross join the routes with the waypoints. Use the `CJ` function from the data.table package. It has a performance edge over `merge`. Building the data frame from the cross join is the bottleneck, so print out a diagnostic.
-
-```{r, eval=FALSE}
-system.time(lookup <- CJ(rownumRoute=seq(1, nrow(routes)), rownumWaypoint=seq(1, nrow(dfWaypoints))))
-system.time(dfCJ <- data.frame(routes[lookup$rownumRoute, ], dfWaypoints[lookup$rownumWaypoint, ]))
-```
-
-Calculate distances from waypoints. I'll need to use the `distHaversine` function from the [geosphere](http://www.inside-r.org/packages/cran/geosphere) package. The Haversine algorithm isn't the most accurate, but it is good enough for this purpose.
-
-```{r, eval=FALSE}
-dist <- distHaversine(dfCJ[, c("lon", "lat")], dfCJ[, c("lon.1", "lat.1")])
-dfCJ <- data.frame(dfCJ, dist)
-```
-
-Set the distance range in meters. Subset routes to those having at least one coordinate point within range from the central point.
-
-```{r, eval=FALSE}
-rangeDist <- 25
-aggRoutes <- aggregate(dist ~ index, dfCJ, min)
-includedRoutes <- aggRoutes$index[aggRoutes$dist < rangeDist]
-```
-
-**END Crap to get rid of**
 
 Subset the routes to include only those with points inside Forest Park.
 

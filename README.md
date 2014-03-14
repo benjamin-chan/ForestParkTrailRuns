@@ -2,7 +2,7 @@ Forest Park Trail Runs
 ======================
 Map trail running routes through [Forest Park](http://www.portlandoregon.gov/parks/finder/index.cfm?&propertyid=127&action=ViewPark).
 
-Last updated 2014-03-13 15:58:27 using R version 3.0.2 (2013-09-25).
+Last updated 2014-03-14 09:28:41 using R version 3.0.2 (2013-09-25).
 
 
 Load packages.
@@ -10,7 +10,7 @@ Load packages.
 
 ```r
 packages <- c("RCurl", "plotKML", "geosphere", "ggmap", "ggplot2", "RColorBrewer", 
-    "data.table", "sp")
+    "data.table", "sp", "xtable")
 sapply(packages, require, character.only = TRUE, quietly = TRUE)
 ```
 
@@ -22,8 +22,8 @@ sapply(packages, require, character.only = TRUE, quietly = TRUE)
 ```
 ##        RCurl      plotKML    geosphere        ggmap      ggplot2 
 ##         TRUE         TRUE         TRUE         TRUE         TRUE 
-## RColorBrewer   data.table           sp 
-##         TRUE         TRUE         TRUE
+## RColorBrewer   data.table           sp       xtable 
+##         TRUE         TRUE         TRUE         TRUE
 ```
 
 
@@ -35,122 +35,34 @@ Read coordinates for Forest Park waypoints.
 url <- getURL("https://docs.google.com/spreadsheet/pub?key=0ApyhYsT8Gi-EdFBUYk4wb0UyYlUweHg1SHlfX3VHV1E&single=true&gid=1&output=csv", 
     cainfo = system.file("CurlSSL", "cacert.pem", package = "RCurl"))
 dfWaypoints <- read.csv(textConnection(url), header = TRUE)
-dfWaypoints
+print(xtable(rbind(head(dfWaypoints), tail(dfWaypoints)), digits = 7), type = "html")
 ```
 
-```
-##                  trail               waypoint   lat    lon isEdge
-## 1       Wildwood Trail            Burnside Rd 45.52 -122.7   TRUE
-## 2       Wildwood Trail        Pittock Mansion 45.52 -122.7   TRUE
-## 3       Wildwood Trail             Cornell Rd 45.53 -122.7   TRUE
-## 4       Wildwood Trail Danford Balch Homesite 45.53 -122.7  FALSE
-## 5       Wildwood Trail              Holman Ln 45.53 -122.7  FALSE
-## 6       Wildwood Trail            Aspen Trail 45.54 -122.7  FALSE
-## 7       Wildwood Trail            Birch Trail 45.53 -122.7  FALSE
-## 8       Wildwood Trail      Wild Cherry Trail 45.54 -122.7  FALSE
-## 9       Wildwood Trail          Dogwood Trail 45.54 -122.7  FALSE
-## 10      Wildwood Trail             NW 53rd Dr 45.54 -122.7   TRUE
-## 11      Wildwood Trail            Alder Trail 45.54 -122.7  FALSE
-## 12      Wildwood Trail             Firelane 1 45.55 -122.7  FALSE
-## 13      Wildwood Trail         Chestnut Trail 45.55 -122.8  FALSE
-## 14      Wildwood Trail             Firelane 2 45.55 -122.8  FALSE
-## 15      Wildwood Trail            Maple Trail 45.55 -122.8  FALSE
-## 16      Wildwood Trail             Firelane 3 45.56 -122.8  FALSE
-## 17      Wildwood Trail            Saltzman Rd 45.57 -122.8  FALSE
-## 18      Wildwood Trail            Fire Lane 5 45.57 -122.8  FALSE
-## 19      Wildwood Trail            Oil Line Rd 45.57 -122.8  FALSE
-## 20      Wildwood Trail         Hardesty Trail 45.58 -122.8  FALSE
-## 21      Wildwood Trail      NW Springville Rd 45.58 -122.8  FALSE
-## 22      Wildwood Trail           Waterline Rd 45.58 -122.8  FALSE
-## 23      Wildwood Trail       NW Germantown Rd 45.59 -122.8  FALSE
-## 24      Wildwood Trail            Firelane 10 45.59 -122.8  FALSE
-## 25      Wildwood Trail              Newton Rd 45.60 -122.8  FALSE
-## 26      Wildwood Trail                 BPA Rd 45.60 -122.8  FALSE
-## 27      Wildwood Trail            Firelane 15 45.60 -122.8  FALSE
-## 28      Wildwood Trail         NW Newberry Rd 45.61 -122.8   TRUE
-## 29     Leif Erikson Dr          NW Thurman St 45.54 -122.7  FALSE
-## 30     Leif Erikson Dr      Wild Cherry Trail 45.54 -122.7  FALSE
-## 31     Leif Erikson Dr          Dogwood Trail 45.55 -122.7   TRUE
-## 32     Leif Erikson Dr            Alder Trail 45.55 -122.7  FALSE
-## 33     Leif Erikson Dr             Firelane 1 45.56 -122.7  FALSE
-## 34     Leif Erikson Dr             Firelane 2 45.56 -122.8  FALSE
-## 35     Leif Erikson Dr             Firelane 3 45.56 -122.8  FALSE
-## 36     Leif Erikson Dr            Saltzman Rd 45.57 -122.8  FALSE
-## 37     Leif Erikson Dr            Maple Trail 45.57 -122.8  FALSE
-## 38     Leif Erikson Dr         Hardesty Trail 45.58 -122.8  FALSE
-## 39     Leif Erikson Dr      NW Springville Rd 45.58 -122.8  FALSE
-## 40     Leif Erikson Dr           Waterline Rd 45.58 -122.8  FALSE
-## 41     Leif Erikson Dr       NW Germantown Rd 45.59 -122.8  FALSE
-## 42 Lower Macleay Trail           NW Upshur St 45.53 -122.7   TRUE
-## 43           Holman Ln             NW 53rd Dr 45.53 -122.7   TRUE
-## 44           Holman Ln          NW Raleigh St 45.53 -122.7   TRUE
-## 45        Aspen Trail            NW Aspen Ave 45.54 -122.7   TRUE
-## 46        Birch Trail              NW 53rd Dr 45.53 -122.7   TRUE
-## 47       Dogwood Trail             NW 53rd Dr 45.54 -122.7   TRUE
-## 48         Saltzman Rd        NW Skyline Blvd 45.56 -122.8   TRUE
-## 49         Saltzman Rd    6099 NW Saltzman Rd 45.57 -122.8   TRUE
-## 50        Ridge Trail      8545 NW Bridge Ave 45.58 -122.8   TRUE
-## 51      Springville Rd    8645 NW Whitney Ave 45.58 -122.8   TRUE
-## 52        Waterline Rd       NW Willalatin Rd 45.58 -122.8   TRUE
-## 53      Tolinda Trail        NW Germantown Rd 45.59 -122.8   TRUE
-## 54       Linnton Trail        NW St Helens Rd 45.60 -122.8   TRUE
-## 55           Newton Rd        NW Skyline Blvd 45.59 -122.8   TRUE
-## 56           BPA Road         NW Skyline Blvd 45.59 -122.8   TRUE
-## 57          Firelane 1           NW Forest Ln 45.55 -122.7  FALSE
-## 58          Firelane 2        NW Skyline Blvd 45.55 -122.8   TRUE
-## 59          Firelane 3    NW Thunder Crest Dr 45.55 -122.8   TRUE
-## 60          Firelane 7      NW Springville Rd 45.58 -122.8   TRUE
-## 61          Firelane 8       NW Germantown Rd 45.59 -122.8  FALSE
-## 62          Firelane 9          NW MacKay Ave 45.59 -122.8   TRUE
-## 63         Firelane 10              Newton Rd 45.59 -122.8  FALSE
-## 64         Firelane 10       NW Germantown Rd 45.59 -122.8  FALSE
-## 65         Firelane 12          NW Creston Rd 45.62 -122.8   TRUE
-## 66         Firelane 15        NW Skyline Blvd 45.60 -122.8   TRUE
-```
+<!-- html table generated in R 3.0.2 by xtable 1.7-1 package -->
+<!-- Fri Mar 14 09:28:49 2014 -->
+<TABLE border=1>
+<TR> <TH>  </TH> <TH> trail </TH> <TH> waypoint </TH> <TH> lat </TH> <TH> lon </TH> <TH> isEdge </TH>  </TR>
+  <TR> <TD align="right"> 1 </TD> <TD> Wildwood Trail </TD> <TD> Burnside Rd </TD> <TD align="right"> 45.5215696 </TD> <TD align="right"> -122.7195009 </TD> <TD> TRUE </TD> </TR>
+  <TR> <TD align="right"> 2 </TD> <TD> Wildwood Trail </TD> <TD> Pittock Mansion </TD> <TD align="right"> 45.5248043 </TD> <TD align="right"> -122.7177391 </TD> <TD> TRUE </TD> </TR>
+  <TR> <TD align="right"> 3 </TD> <TD> Wildwood Trail </TD> <TD> Cornell Rd </TD> <TD align="right"> 45.5268969 </TD> <TD align="right"> -122.7264093 </TD> <TD> TRUE </TD> </TR>
+  <TR> <TD align="right"> 4 </TD> <TD> Wildwood Trail </TD> <TD> Danford Balch Homesite </TD> <TD align="right"> 45.5284844 </TD> <TD align="right"> -122.7246820 </TD> <TD> FALSE </TD> </TR>
+  <TR> <TD align="right"> 5 </TD> <TD> Wildwood Trail </TD> <TD> Holman Ln </TD> <TD align="right"> 45.5331160 </TD> <TD align="right"> -122.7202034 </TD> <TD> FALSE </TD> </TR>
+  <TR> <TD align="right"> 6 </TD> <TD> Wildwood Trail </TD> <TD> Aspen Trail </TD> <TD align="right"> 45.5374433 </TD> <TD align="right"> -122.7221380 </TD> <TD> FALSE </TD> </TR>
+  <TR> <TD align="right"> 61 </TD> <TD> Firelane 8 </TD> <TD> NW Germantown Rd </TD> <TD align="right"> 45.5871410 </TD> <TD align="right"> -122.7961911 </TD> <TD> FALSE </TD> </TR>
+  <TR> <TD align="right"> 62 </TD> <TD> Firelane 9 </TD> <TD> NW MacKay Ave </TD> <TD align="right"> 45.5939867 </TD> <TD align="right"> -122.7849507 </TD> <TD> TRUE </TD> </TR>
+  <TR> <TD align="right"> 63 </TD> <TD> Firelane 10 </TD> <TD> Newton Rd </TD> <TD align="right"> 45.5915020 </TD> <TD align="right"> -122.8023951 </TD> <TD> FALSE </TD> </TR>
+  <TR> <TD align="right"> 64 </TD> <TD> Firelane 10 </TD> <TD> NW Germantown Rd </TD> <TD align="right"> 45.5898750 </TD> <TD align="right"> -122.7909750 </TD> <TD> FALSE </TD> </TR>
+  <TR> <TD align="right"> 65 </TD> <TD> Firelane 12 </TD> <TD> NW Creston Rd </TD> <TD align="right"> 45.6162383 </TD> <TD align="right"> -122.8074015 </TD> <TD> TRUE </TD> </TR>
+  <TR> <TD align="right"> 66 </TD> <TD> Firelane 15 </TD> <TD> NW Skyline Blvd </TD> <TD align="right"> 45.5961899 </TD> <TD align="right"> -122.8235789 </TD> <TD> TRUE </TD> </TR>
+   </TABLE>
 
 
-Find the geographic mean of the waypoints. Use the geographic mean as a center point for grabbing the map.
+Let's use only the waypoints that define the edges of Forest Park.
 
 
 ```r
-geomeanFP <- geomean(dfWaypoints[!is.na(dfWaypoints$lon) & !is.na(dfWaypoints$lat), 
-    c("lon", "lat")])
-geomeanFP
+dfEdges <- dfWaypoints[dfWaypoints$isEdge, ]
 ```
-
-```
-##           x     y
-## [1,] -122.8 45.56
-```
-
-```r
-mapFP <- get_map(location = geomeanFP, maptype = "terrain", source = "stamen", 
-    zoom = 12)
-```
-
-```
-## Map from URL : http://maps.googleapis.com/maps/api/staticmap?center=45.564036,-122.763834&zoom=12&size=%20640x640&maptype=terrain&sensor=false
-## Google Maps API Terms of Service : http://developers.google.com/maps/terms
-```
-
-```r
-ggmap(mapFP)
-```
-
-![plot of chunk mapForestParkBare](figure/mapForestParkBare.png) 
-
-
-Plot the waypoints to use to identify if a run occurred inside Forest Park. Boundary waypoints are shown in a different color.
-
-
-```r
-g <- ggmap(mapFP, base_layer = ggplot(dfWaypoints, aes(x = lon, y = lat, color = isEdge)))
-g <- g + geom_point(size = 2)
-g <- g + theme(legend.position = "none")
-g
-```
-
-![plot of chunk mapForestParkWaypoints](figure/mapForestParkWaypoints.png) 
 
 
 Show the waypoints that are edges, or boundaries, of Forest Park.
@@ -236,7 +148,50 @@ cbind(order = seq(1:max(order)), dfEdges)
 ```
 
 
-Define a polygon.
+Find the geographic mean of the waypoints. Use the geographic mean as a center point for grabbing the map.
+
+
+```r
+geomeanFP <- geomean(dfEdges[, c("lon", "lat")])
+geomeanFP
+```
+
+```
+##           x     y
+## [1,] -122.8 45.56
+```
+
+```r
+mapFP <- get_map(location = geomeanFP, maptype = "terrain", source = "stamen", 
+    zoom = 12)
+```
+
+```
+## Map from URL : http://maps.googleapis.com/maps/api/staticmap?center=45.56285,-122.762969&zoom=12&size=%20640x640&maptype=terrain&sensor=false
+## Google Maps API Terms of Service : http://developers.google.com/maps/terms
+```
+
+```r
+ggmap(mapFP)
+```
+
+![plot of chunk mapForestParkBare](figure/mapForestParkBare.png) 
+
+
+Plot the waypoints to use to identify if a run occurred inside Forest Park. Boundary waypoints are shown in a different color.
+
+
+```r
+g <- ggmap(mapFP, base_layer = ggplot(dfWaypoints, aes(x = lon, y = lat, color = isEdge)))
+g <- g + geom_point(size = 2)
+g <- g + theme(legend.position = "none")
+g
+```
+
+![plot of chunk mapForestParkWaypoints](figure/mapForestParkWaypoints.png) 
+
+
+Define a polygon using the boundary waypoints.
 
 
 ```r
@@ -288,7 +243,7 @@ table(isRun, isRide)
 ```
 ##       isRide
 ## isRun  FALSE
-##   TRUE   504
+##   TRUE   516
 ```
 
 ```r
@@ -310,7 +265,7 @@ message(sprintf("Reading %.0d routes run from %s to %s", length(files), dateFrom
 ```
 
 ```
-## Reading 444 routes run from 2012-01-01 to 2014-03-13
+## Reading 456 routes run from 2012-01-01 to 2014-03-14
 ```
 
 
@@ -336,13 +291,6 @@ routes <- data.frame(cbind(index, date, lat, lon))
 ```
 
 
-
-**START Experimental Section**
-
-Figure out a way to determine if a route includes a data point inside the polygon. Maybe it's faster than the current method?
-
-Try [this](http://www.nceas.ucsb.edu/scicomp/usecases/point-in-polygon).
-
 Use the `point.in.polygon` function in the `sp` package to determine if a route has a point inside the Forest Park polygon.
 
 
@@ -352,45 +300,6 @@ isFP <- as.logical(isFP)
 includedRoutes <- unique(routes[isFP, "index"])
 ```
 
-
-**Experiment works! Time to get rid of the other crap**
-
-**END Experimental Section**
-
-
-**START Crap to get rid of**
-
-Cross join the routes with the waypoints. Use the `CJ` function from the data.table package. It has a performance edge over `merge`. Building the data frame from the cross join is the bottleneck, so print out a diagnostic.
-
-
-```r
-system.time(lookup <- CJ(rownumRoute = seq(1, nrow(routes)), rownumWaypoint = seq(1, 
-    nrow(dfWaypoints))))
-system.time(dfCJ <- data.frame(routes[lookup$rownumRoute, ], dfWaypoints[lookup$rownumWaypoint, 
-    ]))
-```
-
-
-Calculate distances from waypoints. I'll need to use the `distHaversine` function from the [geosphere](http://www.inside-r.org/packages/cran/geosphere) package. The Haversine algorithm isn't the most accurate, but it is good enough for this purpose.
-
-
-```r
-dist <- distHaversine(dfCJ[, c("lon", "lat")], dfCJ[, c("lon.1", "lat.1")])
-dfCJ <- data.frame(dfCJ, dist)
-```
-
-
-Set the distance range in meters. Subset routes to those having at least one coordinate point within range from the central point.
-
-
-```r
-rangeDist <- 25
-aggRoutes <- aggregate(dist ~ index, dfCJ, min)
-includedRoutes <- aggRoutes$index[aggRoutes$dist < rangeDist]
-```
-
-
-**END Crap to get rid of**
 
 Subset the routes to include only those with points inside Forest Park.
 
@@ -405,7 +314,7 @@ message(sprintf("Plotting %.0d routes inside Forest Park (%.1f%% of the %.0d rou
 ```
 
 ```
-## Plotting 80 routes inside Forest Park (18.0% of the 444 routes)
+## Plotting 82 routes inside Forest Park (18.0% of the 456 routes)
 ```
 
 
