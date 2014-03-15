@@ -2,7 +2,7 @@ Forest Park Trail Runs
 ======================
 Map trail running routes through [Forest Park](http://www.portlandoregon.gov/parks/finder/index.cfm?&propertyid=127&action=ViewPark).
 
-Last updated 2014-03-14 09:28:41 using R version 3.0.2 (2013-09-25).
+Last updated 2014-03-15 08:53:39 using R version 3.0.2 (2013-09-25).
 
 
 Load packages.
@@ -15,8 +15,8 @@ sapply(packages, require, character.only = TRUE, quietly = TRUE)
 ```
 
 ```
-## plotKML version 0.4-2 (2013-01-15)
-## URL: http://plotkml.r-forge.r-project.org/
+## plotKML version 0.4-2 (2013-01-15) URL:
+## http://plotkml.r-forge.r-project.org/
 ```
 
 ```
@@ -39,7 +39,7 @@ print(xtable(rbind(head(dfWaypoints), tail(dfWaypoints)), digits = 7), type = "h
 ```
 
 <!-- html table generated in R 3.0.2 by xtable 1.7-1 package -->
-<!-- Fri Mar 14 09:28:49 2014 -->
+<!-- Sat Mar 15 08:53:49 2014 -->
 <TABLE border=1>
 <TR> <TH>  </TH> <TH> trail </TH> <TH> waypoint </TH> <TH> lat </TH> <TH> lon </TH> <TH> isEdge </TH>  </TR>
   <TR> <TD align="right"> 1 </TD> <TD> Wildwood Trail </TD> <TD> Burnside Rd </TD> <TD align="right"> 45.5215696 </TD> <TD align="right"> -122.7195009 </TD> <TD> TRUE </TD> </TR>
@@ -167,7 +167,8 @@ mapFP <- get_map(location = geomeanFP, maptype = "terrain", source = "stamen",
 ```
 
 ```
-## Map from URL : http://maps.googleapis.com/maps/api/staticmap?center=45.56285,-122.762969&zoom=12&size=%20640x640&maptype=terrain&sensor=false
+## Map from URL :
+## http://maps.googleapis.com/maps/api/staticmap?center=45.56285,-122.762969&zoom=12&size=%20640x640&maptype=terrain&sensor=false
 ## Google Maps API Terms of Service : http://developers.google.com/maps/terms
 ```
 
@@ -251,21 +252,19 @@ files <- files[isRun]
 ```
 
 
-Set the date range. Use only the files within range. The dates of the files are determined from the file names.
+Use all dates since I've eliminated the processing speed bottleneck.
 
 
 ```r
-dateFrom <- as.Date("2012-01-01")
-dateTo <- Sys.Date()
 dates <- as.Date(substr(files, 1, 8), format = "%Y%m%d")
-isRangeDate <- dateFrom < dates & dates < dateTo
-files <- files[isRangeDate]
+dateFrom <- min(dates)
+dateTo <- max(dates)
 message(sprintf("Reading %.0d routes run from %s to %s", length(files), dateFrom, 
     dateTo))
 ```
 
 ```
-## Reading 456 routes run from 2012-01-01 to 2014-03-14
+## Reading 516 routes run from 2011-08-24 to 2014-03-10
 ```
 
 
@@ -295,7 +294,15 @@ Use the `point.in.polygon` function in the `sp` package to determine if a route 
 
 
 ```r
-isFP <- point.in.polygon(routes$lon, routes$lat, polyFP$lon, polyFP$lat)
+system.time(isFP <- point.in.polygon(routes$lon, routes$lat, polyFP$lon, polyFP$lat))
+```
+
+```
+##    user  system elapsed 
+##    0.11    0.00    0.25
+```
+
+```r
 isFP <- as.logical(isFP)
 includedRoutes <- unique(routes[isFP, "index"])
 ```
@@ -314,7 +321,7 @@ message(sprintf("Plotting %.0d routes inside Forest Park (%.1f%% of the %.0d rou
 ```
 
 ```
-## Plotting 82 routes inside Forest Park (18.0% of the 456 routes)
+## Plotting 89 routes inside Forest Park (17.2% of the 516 routes)
 ```
 
 

@@ -96,14 +96,12 @@ table(isRun, isRide)
 files <- files[isRun]
 ```
 
-Set the date range. Use only the files within range. The dates of the files are determined from the file names.
+Use all dates since I've eliminated the processing speed bottleneck.
 
 ```{r}
-dateFrom <- as.Date("2012-01-01")
-dateTo <- Sys.Date()
 dates <- as.Date(substr(files, 1, 8), format="%Y%m%d")
-isRangeDate <- dateFrom < dates & dates < dateTo
-files <- files[isRangeDate]
+dateFrom <- min(dates)
+dateTo <- max(dates)
 message(sprintf("Reading %.0d routes run from %s to %s", length(files), dateFrom, dateTo))
 ```
 
@@ -129,7 +127,7 @@ routes <- data.frame(cbind(index, date, lat, lon))
 Use the `point.in.polygon` function in the `sp` package to determine if a route has a point inside the Forest Park polygon.
 
 ```{r}
-isFP <- point.in.polygon(routes$lon, routes$lat, polyFP$lon, polyFP$lat)
+system.time(isFP <- point.in.polygon(routes$lon, routes$lat, polyFP$lon, polyFP$lat))
 isFP <- as.logical(isFP)
 includedRoutes <- unique(routes[isFP, "index"])
 ```
